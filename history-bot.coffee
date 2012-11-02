@@ -1,0 +1,83 @@
+irc = require 'irc'
+require 'sugar'  # for dates
+
+# @todo make these parameters?
+channel = '#Martini'
+botName = 'BigBrother'
+
+client = new irc.Client 'tanqueray.docusignhq.com', botName,
+  channels: [ channel ]
+  autoConnect: false  #?
+
+client.addListener 'error', (error) ->
+  unless error.command is 'err_nosuchnick' then console.log 'error:', error
+
+client.addListener 'registered', (m) ->
+  console.log "Joined #{channel}"
+  client.say channel, 'Big Brother is watching'
+
+# store messages as hash w/ n:msg
+msgs = {}
+
+# current range of msgs
+msgCount = 0
+msgMin = 1
+
+keepOnly = 1000
+
+# msgCount at which people leave
+usersLeftAt = {}
+
+
+# someone else speaks
+client.addListener 'message' + channel, (who, message)->
+  # handle 'catchup' requests
+  if matches = message.match /^catchup( [0-9]*)?$/
+    if usersLeftAt[who]? then catchup who, (matches[1] ? 0)
+    return
+
+  # everything else
+  d = Date.create()
+  msgs[++msgCount] = d.format('{m}/{d}/{yy}') + ' ' d.format('{12hr}:{mm}{tt}') + " #{who}: #{message}"
+
+  # cleanup
+  if msgCount - msgMin >= keepOnly
+    for n in [msgMin..(msgCount-keepOnly)]
+      delete msgs[n]
+      msgMin = (n + 1) if n >= msgMin
+
+
+# remember when a user logs out
+# then when they re-join, invite them to catchup
+
+# someone leaves
+client.addListener 'part' + channel, (who, reason)->
+  console.log "#{who} left at msg ##{msgCount}"
+  usersLeftAt[who] = msgCount
+
+# (don't need to handle kicks)
+# client.addListener 'kick' + channel, (channel, who, byWho, reason)->
+
+# someone joins
+client.addListener 'join' + channel, (who, message) ->
+  console.log "#{who} joined at msg ##{msgCount}"
+  if usersLeftAt[who]?
+    client.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
+      "To catchup, say 'catchup' or 'catchup [# of msgs]'"
+
+countMissed = (who)->
+  if usersLeftAt[who]? then return msgCount - usersLeftAt[who]
+  return 0
+
+catchup = (who, lastN = 0)->
+  # actual # of missed lines. may be > when initially mentioned on re-join.
+  if lastN is 0 then lastN = countMissed(who)
+
+  console.log "Sending #{who} the last #{lastN} messages"
+
+  # private
+  client.say who, "Catchup on the last #{lastN} messages:"
+  client.say who, msgs[n] for n in [(msgCount-lastN+1)..msgCount]  
+
+
+client.connect()
