@@ -1,3 +1,11 @@
+###
+History bot for Martini IRC
+- remember when a user logs out
+- then when they re-join, invite them to 'catchup'
+- user can also 'catchup N' an arbitrary # of lines
+- saves max-sized buffer to memory
+###
+
 irc = require 'irc'
 require 'sugar'  # for dates
 
@@ -45,10 +53,6 @@ client.addListener 'message' + channel, (who, message)->
     for n in [msgMin..(msgCount-keepOnly)]
       delete msgs[n]
       msgMin = (n + 1) if n >= msgMin
-
-
-# remember when a user logs out
-# then when they re-join, invite them to catchup
 
 # someone leaves
 client.addListener 'part' + channel, (who, reason)->
