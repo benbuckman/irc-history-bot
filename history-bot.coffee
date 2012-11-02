@@ -22,7 +22,8 @@ client.addListener 'error', (error) ->
 
 client.addListener 'registered', (m) ->
   console.log "Joined #{channel}"
-  client.say channel, 'Big Brother is watching'
+  client.say channel, "Big Brother is watching. When you leave this channel and return, " +
+    "you can 'catchup' on what you missed, or at any time, 'catchup N' # of lines."
 
 # store messages as hash w/ n:msg
 msgs = {}
@@ -46,7 +47,7 @@ client.addListener 'message' + channel, (who, message)->
 
   # everything else
   d = Date.create()
-  msgs[++msgCount] = d.format('{m}/{d}/{yy}') + ' ' d.format('{12hr}:{mm}{tt}') + " #{who}: #{message}"
+  msgs[++msgCount] = d.format('{m}/{d}/{yy}') + ' ' + d.format('{12hr}:{mm}{tt}') + " #{who}: #{message}"
 
   # cleanup
   if msgCount - msgMin >= keepOnly
