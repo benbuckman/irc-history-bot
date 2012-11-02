@@ -78,6 +78,10 @@ catchup = (who, lastN = 0)->
   # actual # of missed lines. may be > when initially mentioned on re-join.
   if lastN is 0 then lastN = countMissed(who)
 
+  if lastN is 0
+    client.say channel, "#{who} there's nothing for you to catch up on... please specify a # of lines."
+    return
+
   console.log "Sending #{who} the last #{lastN} messages"
 
   # private
