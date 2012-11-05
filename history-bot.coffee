@@ -77,8 +77,9 @@ client.addListener 'part' + channel, (who, reason)->
   console.log "#{who} left at msg ##{msgCount}"
   usersLeftAt[who] = msgCount
 
-# (don't need to handle kicks)
-# client.addListener 'kick' + channel, (channel, who, byWho, reason)->
+client.addListener 'kick' + channel, (who, byWho, reason)->
+  console.log "#{who} kicked at msg ##{msgCount}"
+  usersLeftAt[who] = msgCount
 
 # someone joins
 client.addListener 'join' + channel, (who, message) ->
