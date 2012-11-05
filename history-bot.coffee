@@ -90,6 +90,15 @@ client.addListener 'join' + channel, (who, message) ->
   else if who isnt botName
     client.say channel, "Welcome #{who}. I don't recognize you. Say 'catchup N' to see the last N messages."
 
+
+client.addListener 'end', ()->
+  console.log "Connection ended"
+  # @todo try to reconnect?
+
+client.addListener 'close', ()->
+  console.log "Connection closed"
+
+
 countMissed = (who)->
   if usersLeftAt[who]? then return msgCount - usersLeftAt[who]
   return 0
