@@ -69,7 +69,7 @@ client.addListener 'join' + channel, (who, message) ->
   if usersLeftAt[who]?
     client.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
       "To catchup, say 'catchup' or 'catchup [# of msgs]'"
-  else
+  else if who isnt botName
     client.say channel, "Welcome #{who}. I don't recognize you. Say 'catchup N' to see the last N messages."
 
 countMissed = (who)->
