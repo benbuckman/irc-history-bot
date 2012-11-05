@@ -34,10 +34,10 @@ client = new irc.Client server, botName,
   selfSigned: true
   certExpired: true
 
-client.addListener 'error', (error) ->
+client.on 'error', (error) ->
   unless error.command is 'err_nosuchnick' then console.log 'error:', error
 
-client.addListener 'registered', (m) ->
+client.on 'registered', (m) ->
   console.log "Joined #{channel}"
   client.say channel, "#{botName} is watching. When you leave this channel and return, " +
     "you can 'catchup' on what you missed, or at any time, 'catchup N' # of lines."
@@ -56,7 +56,7 @@ usersLeftAt = {}
 
 
 # someone else speaks
-client.addListener 'message' + channel, (who, message)->
+client.on 'message' + channel, (who, message)->
   # handle 'catchup' requests
   if matches = message.match /^catchup( [0-9]*)?$/
     catchup who, (matches[1] ? 0)
@@ -73,16 +73,16 @@ client.addListener 'message' + channel, (who, message)->
       msgMin = (n + 1) if n >= msgMin
 
 # someone leaves
-client.addListener 'part' + channel, (who, reason)->
+client.on 'part' + channel, (who, reason)->
   console.log "#{who} left at msg ##{msgCount}"
   usersLeftAt[who] = msgCount
 
-client.addListener 'kick' + channel, (who, byWho, reason)->
+client.on 'kick' + channel, (who, byWho, reason)->
   console.log "#{who} kicked at msg ##{msgCount}"
   usersLeftAt[who] = msgCount
 
 # someone joins
-client.addListener 'join' + channel, (who, message) ->
+client.on 'join' + channel, (who, message) ->
   console.log "#{who} joined at msg ##{msgCount}"
   if usersLeftAt[who]?
     client.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
@@ -91,11 +91,11 @@ client.addListener 'join' + channel, (who, message) ->
     client.say channel, "Welcome #{who}. I don't recognize you. Say 'catchup N' to see the last N messages."
 
 
-client.addListener 'end', ()->
+client.on 'end', ()->
   console.log "Connection ended"
   # @todo try to reconnect?
 
-client.addListener 'close', ()->
+client.on 'close', ()->
   console.log "Connection closed"
 
 
