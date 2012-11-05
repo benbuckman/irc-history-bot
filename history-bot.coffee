@@ -42,7 +42,7 @@ usersLeftAt = {}
 client.addListener 'message' + channel, (who, message)->
   # handle 'catchup' requests
   if matches = message.match /^catchup( [0-9]*)?$/
-    if usersLeftAt[who]? then catchup who, (matches[1] ? 0)
+    catchup who, (matches[1] ? 0)
     return
 
   # everything else
@@ -69,6 +69,8 @@ client.addListener 'join' + channel, (who, message) ->
   if usersLeftAt[who]?
     client.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
       "To catchup, say 'catchup' or 'catchup [# of msgs]'"
+  else
+    client.say channel, "Welcome #{who}. I don't recognize you. Say 'catchup N' to see the last N messages."
 
 countMissed = (who)->
   if usersLeftAt[who]? then return msgCount - usersLeftAt[who]
@@ -86,7 +88,8 @@ catchup = (who, lastN = 0)->
 
   # private
   client.say who, "Catchup on the last #{lastN} messages:"
-  client.say who, msgs[n] for n in [(msgCount-lastN+1)..msgCount]  
+  for n in [(msgCount-lastN+1)..msgCount]
+    if msgs[n]? then client.say who, msgs[n]
 
 
 client.connect()
