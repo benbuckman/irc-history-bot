@@ -9,20 +9,37 @@ History bot for Martini IRC
 irc = require 'irc'
 require 'sugar'  # for dates
 
-# @todo make these parameters?
-channel = '#Martini'
-botName = 'BigBrother'
+argv = require('optimist')
+  .usage('Usage: $0 [--ssl] -s <server> [-u <user>] [-p <password>] [-b <botName>] -c <channel>')
+  .demand(['s','c'])
+  .default('c', '#Martini')
+  .default('b', 'BigBrother')
+  .boolean('ssl').default('ssl', false)
+  .argv
 
-client = new irc.Client 'tanqueray.docusignhq.com', botName,
+server = argv.s
+channel = argv.c
+if not channel.match(/^#/) then channel = '#' + channel
+botName = argv.b
+
+console.log "Connecting to #{channel} on #{server} as #{botName} " +
+  (if argv.ssl then "with SSL" else "without SSL")
+
+client = new irc.Client server, botName,
   channels: [ channel ]
-  autoConnect: false  #?
+  autoConnect: false
+  secure: argv.ssl
+  userName: argv.u
+  password: argv.p
+  selfSigned: true
+  certExpired: true
 
 client.addListener 'error', (error) ->
   unless error.command is 'err_nosuchnick' then console.log 'error:', error
 
 client.addListener 'registered', (m) ->
   console.log "Joined #{channel}"
-  client.say channel, "Big Brother is watching. When you leave this channel and return, " +
+  client.say channel, "#{botName} is watching. When you leave this channel and return, " +
     "you can 'catchup' on what you missed, or at any time, 'catchup N' # of lines."
 
 # store messages as hash w/ n:msg
