@@ -25,7 +25,7 @@ botName = argv.b
 console.log "Connecting to #{channel} on #{server} as #{botName} " +
   (if argv.ssl then "with SSL" else "without SSL")
 
-client = new irc.Client server, botName,
+bot = new irc.Client server, botName,
   channels: [ channel ]
   autoConnect: false
   secure: argv.ssl
@@ -34,12 +34,12 @@ client = new irc.Client server, botName,
   selfSigned: true
   certExpired: true
 
-client.on 'error', (error) ->
+bot.on 'error', (error) ->
   unless error.command is 'err_nosuchnick' then console.log 'error:', error
 
-client.on 'registered', (m) ->
+bot.on 'registered', (m) ->
   console.log "Joined #{channel}"
-  client.say channel, "#{botName} is watching. When you leave this channel and return, " +
+  bot.say channel, "#{botName} is watching. When you leave this channel and return, " +
     "you can 'catchup' on what you missed, or at any time, 'catchup N' # of lines."
 
 # store messages as hash w/ n:msg
@@ -56,7 +56,7 @@ usersLeftAt = {}
 
 
 # someone else speaks
-client.on 'message' + channel, (who, message)->
+bot.on 'message' + channel, (who, message)->
   # handle 'catchup' requests
   if matches = message.match /^catchup( [0-9]*)?$/
     catchup who, (matches[1] ? 0)
@@ -73,29 +73,29 @@ client.on 'message' + channel, (who, message)->
       msgMin = (n + 1) if n >= msgMin
 
 # someone leaves
-client.on 'part' + channel, (who, reason)->
+bot.on 'part' + channel, (who, reason)->
   console.log "#{who} left at msg ##{msgCount}"
   usersLeftAt[who] = msgCount
 
-client.on 'kick' + channel, (who, byWho, reason)->
+bot.on 'kick' + channel, (who, byWho, reason)->
   console.log "#{who} kicked at msg ##{msgCount}"
   usersLeftAt[who] = msgCount
 
 # someone joins
-client.on 'join' + channel, (who, message) ->
+bot.on 'join' + channel, (who, message) ->
   console.log "#{who} joined at msg ##{msgCount}"
   if usersLeftAt[who]?
-    client.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
+    bot.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
       "To catchup, say 'catchup' or 'catchup [# of msgs]'"
   else if who isnt botName
-    client.say channel, "Welcome #{who}. I don't recognize you. Say 'catchup N' to see the last N messages."
+    bot.say channel, "Welcome #{who}. I don't recognize you. Say 'catchup N' to see the last N messages."
 
 
-client.on 'end', ()->
+bot.on 'end', ()->
   console.log "Connection ended"
   # @todo try to reconnect?
 
-client.on 'close', ()->
+bot.on 'close', ()->
   console.log "Connection closed"
 
 
@@ -108,15 +108,15 @@ catchup = (who, lastN = 0)->
   if lastN is 0 then lastN = countMissed(who)
 
   if lastN is 0
-    client.say channel, "#{who} there's nothing for you to catch up on... please specify a # of lines."
+    bot.say channel, "#{who} there's nothing for you to catch up on... please specify a # of lines."
     return
 
   console.log "Sending #{who} the last #{lastN} messages"
 
   # private
-  client.say who, "Catchup on the last #{lastN} messages:"
+  bot.say who, "Catchup on the last #{lastN} messages:"
   for n in [(msgCount-lastN+1)..msgCount]
-    if msgs[n]? then client.say who, msgs[n]
+    if msgs[n]? then bot.say who, msgs[n]
 
 
-client.connect()
+bot.connect()
