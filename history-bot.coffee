@@ -70,14 +70,19 @@ bot.on 'message' + channel, (who, message)->
       delete msgs[n]
       msgMin = (n + 1) if n >= msgMin
 
-# someone leaves
-bot.on 'part' + channel, (who, reason)->
-  console.log "#{who} left at msg ##{msgCount}"
+
+quitHandler = (who, type = "left")->
+  console.log "#{who} #{type} at msg ##{msgCount}"
   usersLeftAt[who] = msgCount
 
+# 3 ways to leave
+bot.on 'part' + channel, (who, reason)->
+  quitHandler who, 'left'
 bot.on 'kick' + channel, (who, byWho, reason)->
-  console.log "#{who} kicked at msg ##{msgCount}"
-  usersLeftAt[who] = msgCount
+  quitHandler who, 'kicked'
+bot.on 'quit', (who, reason, channels, message)->
+  if channel in channels then quitHandler who, 'quit'
+
 
 # someone joins
 bot.on 'join' + channel, (who, message) ->
