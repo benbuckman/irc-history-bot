@@ -4,6 +4,7 @@ History bot for Martini IRC
 - then when they re-join, invite them to 'catchup'
 - user can also 'catchup N' an arbitrary # of lines
 - saves max-sized buffer to memory
+- ONE CHANNEL AT A TIME - to run multiple channels, run multiple bots
 ###
 
 irc = require 'irc'
@@ -19,7 +20,7 @@ argv = require('optimist')
 
 server = argv.s
 channel = argv.c
-if not channel.match(/^#/) then channel = '#' + channel
+try if not channel.match(/^#/) then channel = '#' + channel
 botName = argv.b
 
 console.log "Connecting to #{channel} on #{server} as #{botName} " +
