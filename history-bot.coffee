@@ -39,8 +39,6 @@ bot.on 'error', (error) ->
 
 bot.on 'registered', (m) ->
   console.log "Joined #{channel}"
-  bot.say channel, "#{botName} is watching. When you leave this channel and return, " +
-    "you can 'catchup' on what you missed, or at any time, 'catchup N' # of lines."
 
 # store messages as hash w/ n:msg
 msgs = {}
@@ -83,6 +81,12 @@ bot.on 'kick' + channel, (who, byWho, reason)->
 
 # someone joins
 bot.on 'join' + channel, (who, message) ->
+  # self? (instead of 'registered' which our new server doesn't like, pre-join)
+  if who is botName and msgCount is 0
+    bot.say channel, "#{botName} is watching. When you leave this channel and return, " +
+      "you can 'catchup' on what you missed, or at any time, 'catchup N' # of lines."
+    return
+
   console.log "#{who} joined at msg ##{msgCount}"
   if usersLeftAt[who]?
     bot.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
