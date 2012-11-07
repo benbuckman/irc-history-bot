@@ -94,11 +94,17 @@ bot.on 'join' + channel, (who, message) ->
     return
 
   console.log "#{who} joined at msg ##{msgCount}"
+
+  # [auto-catchup]
+  catchup who
+
   if usersLeftAt[who]?
-    bot.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
-      "To catchup, say 'catchup' or 'catchup [# of msgs]'"
-  else if who isnt botName
-    bot.say channel, "Welcome #{who}. I don't recognize you. Say 'catchup N' to see the last N messages."
+    console.log "#{who} left #{countMissed(who)} messages ago"
+  #   bot.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
+  #     "To catchup, say 'catchup' or 'catchup [# of msgs]'"
+  # else if who isnt botName
+  #   bot.say channel, "Welcome #{who}. I don't recognize you. Say 'catchup N' to see the last N messages."
+  #   catchup who
 
 
 bot.on 'end', ()->
@@ -117,9 +123,15 @@ catchup = (who, lastN = 0)->
   # actual # of missed lines. may be > when initially mentioned on re-join.
   if lastN is 0 then lastN = countMissed(who)
 
+  # (user isn't recognized, send a bunch)
   if lastN is 0
-    bot.say channel, "#{who} there's nothing for you to catch up on... please specify a # of lines."
-    return
+    lastN = 100
+
+    # [old]
+    # bot.say channel, "#{who} there's nothing for you to catch up on... please specify a # of lines."
+    # return
+
+  lastN = Math.min(lastN, msgs.length)
 
   console.log "Sending #{who} the last #{lastN} messages"
 
