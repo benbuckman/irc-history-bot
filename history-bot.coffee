@@ -131,7 +131,7 @@ catchup = (who, lastN = 0)->
     # bot.say channel, "#{who} there's nothing for you to catch up on... please specify a # of lines."
     # return
 
-  lastN = Math.min(lastN, msgs.length)
+  lastN = Math.min lastN, Object.keys(msgs).length
 
   console.log "Sending #{who} the last #{lastN} messages"
 
