@@ -126,8 +126,6 @@ bot.on 'join' + channel, (who, message) ->
 
   console.log "#{who} joined at msg ##{msgCount}"
 
-  if usersLastSaw[who]? then console.log "#{who} left #{countMissed(who)} messages ago"
-
   # auto-catchup, if something new or unknown user.
   catchup who
 
