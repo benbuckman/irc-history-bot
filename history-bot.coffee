@@ -11,11 +11,12 @@ irc = require 'irc'
 require 'sugar'  # for dates
 
 argv = require('optimist')
-  .usage('Usage: $0 [--ssl] -s <server> [-u <user>] [-p <password>] [-b <botName>] -c <channel>')
-  .demand(['s','c'])
-  .default('c', '#Martini')
-  .default('b', 'BigBrother')
-  .boolean('ssl').default('ssl', false)
+  .demand('server').alias('server', 's').describe('server', 'Server')
+  .demand('channel').alias('channel', 'c').describe('channel', 'Channel')
+  .demand('botname').alias('botname', 'b').describe('botname', 'Bot Name')
+  .alias('user', 'u').describe('user', 'Username for server')
+  .alias('password', 'p').describe('password', 'Password for server')
+  .boolean('ssl').describe('ssl', 'Use SSL').default('ssl', false)
   .argv
 
 server = argv.s
