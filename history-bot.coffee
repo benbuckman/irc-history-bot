@@ -51,7 +51,7 @@ msgMin = 1
 keepOnly = 1000
 
 # msgCount at which people leave
-usersLeftAt = {}
+usersLastSaw = {}
 
 
 # someone else speaks
@@ -74,7 +74,8 @@ bot.on 'message' + channel, (who, message)->
 
 quitHandler = (who, type = "left")->
   console.log "#{who} #{type} at msg ##{msgCount}"
-  usersLeftAt[who] = msgCount
+  usersLastSaw[who] = msgCount
+
 
 # 3 ways to leave
 bot.on 'part' + channel, (who, reason)->
@@ -95,16 +96,11 @@ bot.on 'join' + channel, (who, message) ->
 
   console.log "#{who} joined at msg ##{msgCount}"
 
-  # [auto-catchup]
-  catchup who
-
-  if usersLeftAt[who]?
+  if usersLastSaw[who]?
     console.log "#{who} left #{countMissed(who)} messages ago"
-  #   bot.say channel, "Welcome back #{who}. You left us #{countMissed(who)} messages ago. " +
-  #     "To catchup, say 'catchup' or 'catchup [# of msgs]'"
-  # else if who isnt botName
-  #   bot.say channel, "Welcome #{who}. I don't recognize you. Say 'catchup N' to see the last N messages."
-  #   catchup who
+
+  # auto-catchup, if something new or unknown user.
+  catchup who
 
 
 bot.on 'end', ()->
@@ -116,21 +112,23 @@ bot.on 'close', ()->
 
 
 countMissed = (who)->
-  if usersLeftAt[who]? then return msgCount - usersLeftAt[who]
-  return 0
+  # differentiate 0 (nothing new) from false (don't know the user)
+  if usersLastSaw[who]? then return msgCount - usersLastSaw[who]
+  return false
 
 catchup = (who, lastN = 0)->
   # actual # of missed lines. may be > when initially mentioned on re-join.
   if lastN is 0 then lastN = countMissed(who)
 
-  # (user isn't recognized, send a bunch)
+  # countMissed returned 0, means the user is known but hasn't missed anything.
   if lastN is 0
-    lastN = 100
+    console.log "Nothing new to send #{who}"
+    return
 
-    # [old]
-    # bot.say channel, "#{who} there's nothing for you to catch up on... please specify a # of lines."
-    # return
+  # user isn't recognized, send a bunch
+  if lastN is false then lastN = 100
 
+  # don't try to send more than we have
   lastN = Math.min lastN, Object.keys(msgs).length
 
   console.log "Sending #{who} the last #{lastN} messages"
