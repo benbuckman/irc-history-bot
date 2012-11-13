@@ -40,9 +40,16 @@ bot = new irc.Client server, botName,
 bot.on 'error', (error) ->
   unless error.command is 'err_nosuchnick' then console.log 'error:', error
 
-bot.on 'registered', (m) ->
+bot.on 'registered', (data) ->
   console.log "Joined #{channel}"
 
+  # has my nick changed? (e.g. if connected >once on same server)
+  # - not sure if this is consistent -
+  if data.args?.length is 2
+    newNick = data.args[0]
+    if newNick isnt botName
+      console.warn "Bot Name changed to #{newNick}!"
+      botName = newNick
 
 # store messages as hash w/ n:msg
 msgs = {}
