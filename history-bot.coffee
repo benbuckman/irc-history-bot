@@ -9,6 +9,7 @@ History bot for Martini IRC
 
 irc = require 'irc'
 require 'sugar'  # for dates
+async = require 'async'
 
 argv = require('optimist')
   .demand('server').alias('server', 's').describe('server', 'Server')
@@ -53,7 +54,23 @@ msgMin = 1
 keepOnly = 1000
 
 # msgCount at which people leave
+# (in memory for now, @todo move to redis)
 usersLastSaw = {}
+
+# track that user saw the last message.
+# use global msgCount as counter.
+# async response so we can refactor to redis later.
+recordUserSaw = (who, callback)->
+  # don't care about self
+  if who is botName then return
+
+  # don't regress
+  if usersLastSaw[who]?
+    usersLastSaw[who] = Math.max(usersLastSaw[who], msgCount)
+  else
+    usersLastSaw[who] = msgCount
+
+  callback?()
 
 
 # someone else speaks
@@ -80,7 +97,7 @@ bot.on 'message' + channel, (who, message)->
 
 quitHandler = (who, type = "left")->
   console.log "#{who} #{type} at msg ##{msgCount}"
-  usersLastSaw[who] = msgCount
+  recordUserSaw who
 
 
 # 3 ways to leave
@@ -102,8 +119,7 @@ bot.on 'join' + channel, (who, message) ->
 
   console.log "#{who} joined at msg ##{msgCount}"
 
-  if usersLastSaw[who]?
-    console.log "#{who} left #{countMissed(who)} messages ago"
+  if usersLastSaw[who]? then console.log "#{who} left #{countMissed(who)} messages ago"
 
   # auto-catchup, if something new or unknown user.
   catchup who
@@ -119,49 +135,64 @@ bot.on 'close', ()->
 
 # names are requested whenever a message is posted.
 # track that everyone in the room has seen the last message.
-bot.on 'names', (inChannel, names)->
-  if inChannel isnt channel then return
+bot.on 'names', (forChannel, names)->
+  if forChannel isnt channel then return
   try
     names = Object.keys(names)
-    console.log "updating #{names.length} users (" + names.join(',') + ") to msg ##{msgCount}"
-    for who in names
-      if who is botName then continue
-      # (there's some delay on this event, so make sure we're not lagging)
-      if usersLastSaw[who]?
-        usersLastSaw[who] = Math.max(usersLastSaw[who], msgCount)
-      else 
-        usersLastSaw[who] = msgCount
-
+    # (exclude self)
+    console.log "updating #{names.length - 1} users (" + names.join(',') + ") to msg ##{msgCount}"
+    recordUserSaw who for who in names
   catch error
     console.error "Unable to parse names", error
 
 
-countMissed = (who)->
+# (async so we can refactor to redis)
+countMissed = (who, callback)->
   # differentiate 0 (nothing new) from false (don't know the user)
-  if usersLastSaw[who]? then return msgCount - usersLastSaw[who]
-  return false
+  if usersLastSaw[who]?
+    callback (msgCount - usersLastSaw[who])
+  else callback false
 
-catchup = (who, lastN = 0)->
-  # actual # of missed lines. may be > when initially mentioned on re-join.
-  if lastN is 0 then lastN = countMissed(who)
 
-  # countMissed returned 0, means the user is known but hasn't missed anything.
-  if lastN is 0
-    console.log "Nothing new to send #{who}"
-    return
+# (async so we can refactor to redis)
+catchup = (who, lastN = 0, callback)->
+  async.waterfall [
+    (next)->
+      # actual # of missed lines. may be > when initially mentioned on re-join.
+      if lastN is 0 then countMissed who, (lastN)-> next null, lastN
+      else next null, lastN
+    
+    (lastN, next)->
+      # countMissed returned 0, means the user is known but hasn't missed anything.
+      if lastN is 0
+        console.log "Nothing new to send #{who}"
+        next true
+      
+      # user isn't recognized, send a bunch
+      else if lastN is false then next null, 100
+      else next null, lastN
+    
+    (lastN, next)->
+      # @todo refactor {msgs}.length to redis lookup
 
-  # user isn't recognized, send a bunch
-  if lastN is false then lastN = 100
+      # don't try to send more than we have
+      lastN = Math.min lastN, Object.keys(msgs).length
+      next null, lastN
 
-  # don't try to send more than we have
-  lastN = Math.min lastN, Object.keys(msgs).length
+    (lastN, next)->
+      console.log "Sending #{who} the last #{lastN} messages"
 
-  console.log "Sending #{who} the last #{lastN} messages"
-
-  # private
-  bot.say who, "Catchup on the last #{lastN} messages:"
-  for n in [(msgCount-lastN+1)..msgCount]
-    if msgs[n]? then bot.say who, msgs[n]
+      # private
+      bot.say who, "Catchup on the last #{lastN} messages:"
+      for n in [(msgCount-lastN+1)..msgCount]
+        if msgs[n]? then bot.say who, msgs[n]
+      next()
+  ],
+  (error)->
+    # don't pass back errors
+    if error instanceof Error then console.error error
+    callback?()
+  
 
 
 bot.connect()

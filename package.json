@@ -9,7 +9,8 @@
   "dependencies": {
     "irc": "git://github.com/martynsmith/node-irc.git",
     "sugar": "*",
-    "optimist": "*"
+    "optimist": "*",
+    "async": "*"
   },
   "repository": "",
   "author": "Ben Buckman",
