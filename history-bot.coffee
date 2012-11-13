@@ -42,6 +42,7 @@ bot.on 'error', (error) ->
 bot.on 'registered', (m) ->
   console.log "Joined #{channel}"
 
+
 # store messages as hash w/ n:msg
 msgs = {}
 
@@ -62,7 +63,7 @@ bot.on 'message' + channel, (who, message)->
     catchup who, (matches[1] ? 0)
     return
 
-  # everything else
+  # save everything else
   d = Date.create()
   msgs[++msgCount] = d.format('{m}/{d}/{yy}') + ' ' + d.format('{12hr}:{mm}{tt}') + " #{who}: #{message}"
 
@@ -71,6 +72,10 @@ bot.on 'message' + channel, (who, message)->
     for n in [msgMin..(msgCount-keepOnly)]
       delete msgs[n]
       msgMin = (n + 1) if n >= msgMin
+
+  # get the list of users in this channel,
+  # record that they got the last msg. (caught by event handler.)
+  bot.send 'NAMES', channel
 
 
 quitHandler = (who, type = "left")->
@@ -110,6 +115,25 @@ bot.on 'end', ()->
 
 bot.on 'close', ()->
   console.log "Connection closed"
+
+
+# names are requested whenever a message is posted.
+# track that everyone in the room has seen the last message.
+bot.on 'names', (inChannel, names)->
+  if inChannel isnt channel then return
+  try
+    names = Object.keys(names)
+    console.log "updating #{names.length} users (" + names.join(',') + ") to msg ##{msgCount}"
+    for who in names
+      if who is botName then continue
+      # (there's some delay on this event, so make sure we're not lagging)
+      if usersLastSaw[who]?
+        usersLastSaw[who] = Math.max(usersLastSaw[who], msgCount)
+      else 
+        usersLastSaw[who] = msgCount
+
+  catch error
+    console.error "Unable to parse names", error
 
 
 countMissed = (who)->
