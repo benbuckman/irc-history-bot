@@ -89,7 +89,7 @@ bot.on 'message' + channel, (who, message)->
 
   # save everything else
   d = Date.create()
-  msgs[++msgCount] = d.format('{m}/{d}/{yy}') + ' ' + d.format('{12hr}:{mm}{tt}') + " #{who}: #{message}"
+  msgs[++msgCount] = d.format('{M}/{d}/{yy}') + ' ' + d.format('{12hr}:{mm}{tt}') + " #{who}: #{message}"
 
   # cleanup
   if msgCount - msgMin >= keepOnly
