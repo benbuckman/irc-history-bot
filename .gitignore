@@ -1,2 +1,2 @@
-.log
-.sh
+*.log
+daemon.sh
