@@ -64,10 +64,25 @@ keepOnly = 1000
 # (in memory for now, @todo move to redis)
 usersLastSaw = {}
 
+
+# if a user is logged off and logs back on,
+# their nick gets a '_' appended to it.
+# then they see a long history of msgs that they already saw.
+# so ignore the trailing _'s.
+_realNick = (nick)->
+  try
+    return nick.replace /_*$/, ''
+  catch e
+    return nick
+  
+
+
 # track that user saw the last message.
 # use global msgCount as counter.
 # async response so we can refactor to redis later.
 recordUserSaw = (who, callback)->
+  who = _realNick who
+
   # don't care about self
   if who is botName then return
 
@@ -82,6 +97,8 @@ recordUserSaw = (who, callback)->
 
 # someone else speaks
 bot.on 'message' + channel, (who, message)->
+  who = _realNick who
+
   # handle 'catchup' requests
   if matches = message.match /^catchup( [0-9]*)?$/
     catchup who, (matches[1] ? 0)
@@ -103,6 +120,7 @@ bot.on 'message' + channel, (who, message)->
 
 
 quitHandler = (who, type = "left")->
+  who = _realNick who
   console.log "#{who} #{type} at msg ##{msgCount}"
   recordUserSaw who
 
@@ -118,6 +136,8 @@ bot.on 'quit', (who, reason, channels, message)->
 
 # someone joins
 bot.on 'join' + channel, (who, message) ->
+  who = _realNick who
+
   # self? (instead of 'registered' which our new server doesn't like, pre-join)
   if who is botName and msgCount is 0
     bot.say channel, "#{botName} is watching. When you leave this channel and return, " +
@@ -153,6 +173,7 @@ bot.on 'names', (forChannel, names)->
 
 # (async so we can refactor to redis)
 countMissed = (who, callback)->
+  who = _realNick who
   # differentiate 0 (nothing new) from false (don't know the user)
   if usersLastSaw[who]?
     callback (msgCount - usersLastSaw[who])
@@ -161,6 +182,7 @@ countMissed = (who, callback)->
 
 # (async so we can refactor to redis)
 catchup = (who, lastN = 0, callback)->
+  who = _realNick who
   async.waterfall [
     (next)->
       # actual # of missed lines. may be > when initially mentioned on re-join.
