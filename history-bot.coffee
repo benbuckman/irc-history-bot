@@ -17,7 +17,7 @@ argv = require('optimist')
   .demand('botname').alias('botname', 'b').describe('botname', 'Bot Name')
   .alias('user', 'u').describe('user', 'Username for server')
   .alias('password', 'p').describe('password', 'Password for server')
-  .describe('port', 'Port').default('6667')
+  .describe('port', 'Port').default('port', '6667')
   .boolean('ssl').describe('ssl', 'Use SSL').default('ssl', false)
   .argv
 
