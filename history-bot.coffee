@@ -26,7 +26,7 @@ channel = argv.channel
 try if not channel.match(/^#/) then channel = '#' + channel
 botName = argv.botname
 
-console.log "Connecting to #{channel} on #{server} as #{botName} " +
+console.log "Connecting to #{channel} on #{server}:#{argv.port} as #{botName} " +
   (if argv.ssl then "with SSL" else "without SSL")
 
 bot = new irc.Client server, botName,
