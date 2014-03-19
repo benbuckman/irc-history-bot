@@ -17,13 +17,14 @@ argv = require('optimist')
   .demand('botname').alias('botname', 'b').describe('botname', 'Bot Name')
   .alias('user', 'u').describe('user', 'Username for server')
   .alias('password', 'p').describe('password', 'Password for server')
+  .describe('port', 'Port').default('6667')
   .boolean('ssl').describe('ssl', 'Use SSL').default('ssl', false)
   .argv
 
-server = argv.s
-channel = argv.c
+server = argv.server
+channel = argv.channel
 try if not channel.match(/^#/) then channel = '#' + channel
-botName = argv.b
+botName = argv.botname
 
 console.log "Connecting to #{channel} on #{server} as #{botName} " +
   (if argv.ssl then "with SSL" else "without SSL")
@@ -36,6 +37,7 @@ bot = new irc.Client server, botName,
   password: argv.p
   selfSigned: true
   certExpired: true
+  port: argv.port
 
 bot.on 'error', (error) ->
   unless error.command is 'err_nosuchnick' then console.log 'error:', error
